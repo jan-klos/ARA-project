@@ -78,12 +78,12 @@ public class EmitterImpl implements Emitter {
 	}
 
 	public Object clone() {
-		EmitterImpl ep = null;
+		EmitterImpl obj = null;
 		
 		try {
-			ep = (EmitterImpl) super.clone();
+			obj = (EmitterImpl) super.clone();
 		} 
 		catch (CloneNotSupportedException e) {}
-		return ep;
+		return obj;
 	}
 }
