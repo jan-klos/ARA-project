@@ -1,7 +1,6 @@
 package ara.util;
 
 import ara.manet.communication.Emitter;
-import ara.manet.communication.EmitterImpl;
 import ara.manet.detection.NeighborProtocolImpl;
 import ara.manet.detection.ProbeMessage;
 import ara.manet.positioning.PositionProtocol;
@@ -13,15 +12,13 @@ import peersim.core.Node;
 
 public class Initialisator implements Control {
 	private static final String PAR_POSITION_PROTO = "position_pid";
-	private static final String PAR_EMITTER = "emitter_pid";
 	private static final String PAR_NEIGHBOR = "neighbor_pid";
 	private static final String LOOP_EVENT = "LOOPEVENT";
 	
-	private final int positionPid, emitterPid, neighborPid;
+	private final int positionPid, neighborPid;
 	
 	public Initialisator(String prefix) {
 		positionPid = Configuration.getPid(prefix + "." + PAR_POSITION_PROTO);
-		emitterPid = Configuration.getPid(prefix + "." + PAR_EMITTER);
 		neighborPid = Configuration.getPid(prefix + "." + PAR_NEIGHBOR);
 	}
 	
@@ -35,9 +32,6 @@ public class Initialisator implements Control {
 			NeighborProtocolImpl np = (NeighborProtocolImpl)node.getProtocol(neighborPid);
 			np.processEvent(node, neighborPid, new ProbeMessage(node.getID(), Emitter.ALL, neighborPid));
 			pp.processEvent(node, positionPid, LOOP_EVENT);
-			//Emitter emp = (EmitterImpl) node.getProtocol((emitterPid));
-			//emp.processEvent(node, emitterPid, emp);
-
 		}
 		return false;
 	}
