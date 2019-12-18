@@ -4,8 +4,10 @@ import peersim.core.CommonState;
 import peersim.core.Network;
 import peersim.core.Node;
 import peersim.config.Configuration;
+import peersim.edsim.EDProtocol;
 import peersim.edsim.EDSimulator;
-import ara.manet.positioning.PositionProtocol;
+import ara.manet.positioning.Position;
+import ara.manet.positioning.PositionProtocolImpl;
 import ara.util.Message;
 
 public class EmitterImpl implements Emitter {
@@ -16,7 +18,7 @@ public class EmitterImpl implements Emitter {
 	private static final String PAR_SCOPE = "scope";
 	private static final String PAR_POSITION_PROTOCOL = "position_protocol";
 	
-	private final int myPid, latency, scope, positionProtocolPid;
+	private final int myPid, latency, scope, positionPid;
 	private final boolean varianceActive;
 	
 	public EmitterImpl(String prefix) {
@@ -25,35 +27,33 @@ public class EmitterImpl implements Emitter {
 		latency = Configuration.getInt(prefix + "." + PAR_LATENCY);
 		varianceActive = Configuration.getBoolean(prefix + "." + PAR_VARIANCE_ACTIVE);
 		scope = Configuration.getInt(prefix + "." + PAR_SCOPE);
-		positionProtocolPid = Configuration.lookupPid(PAR_POSITION_PROTOCOL);
+		positionPid = Configuration.lookupPid(PAR_POSITION_PROTOCOL);
 	}
 	
 	@Override
 	public void processEvent(Node host, int pid, Object event) {
-		
 		if (pid != myPid) {
 			throw new RuntimeException("Receive Event for wrong protocol");
 		}
-		
-		if (event.equals(EMIT_EVENT)) {
-			System.out.println("emit_event");
-		} 
+		if (event instanceof Message) {
+			Message msg = (Message) event;
+			int msgPid = msg.getPid();
+			if (msg.getIdDest() == host.getID() || msg.getIdDest() == Emitter.ALL) {
+				((EDProtocol) host.getProtocol(msgPid)).processEvent(host, msgPid, msg);
+			}
+		}
 	}
 
 	@Override
-	public void emit(Node sender, Message msg) {
+	public void emit(Node host, Message msg) {
 		Node dest;
-
-		for(int i = 0; i < Network.size(); i++) {
+		Position hostPosition = ((PositionProtocolImpl) host.getProtocol(positionPid)).getCurrentPosition();
+		for (int i = 0; i < Network.size(); i++) {
 			dest = Network.get(i);
-			
-			if(dest.getID() == msg.getIdDest() || msg.getIdDest() == ALL) {
-				PositionProtocol senderPosition = (PositionProtocol) sender.getProtocol(positionProtocolPid);
-				PositionProtocol destPosition = (PositionProtocol) dest.getProtocol(positionProtocolPid);
-				double distance = senderPosition.getCurrentPosition().distance(destPosition.getCurrentPosition());
-				
-				if (distance <= getScope()) {
-					EDSimulator.add(getLatency(), receive(sender, msg), dest, myPid);
+			if (dest.getID() == msg.getIdDest() || msg.getIdDest() == Emitter.ALL) {
+				Position destPosition = ((PositionProtocolImpl) dest.getProtocol(positionPid)).getCurrentPosition();
+				if (hostPosition != null && destPosition != null && hostPosition.distance(destPosition) <= scope) {
+					EDSimulator.add(getLatency(), msg, dest, myPid);
 				}
 			}
 		}
@@ -61,7 +61,6 @@ public class EmitterImpl implements Emitter {
 
 	@Override
 	public int getLatency() {
-		
 		if(varianceActive) {
 			return CommonState.r.nextPoisson(latency);
 		}
@@ -79,7 +78,6 @@ public class EmitterImpl implements Emitter {
 
 	public Object clone() {
 		EmitterImpl obj = null;
-		
 		try {
 			obj = (EmitterImpl) super.clone();
 		} 

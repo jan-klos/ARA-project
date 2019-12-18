@@ -3,6 +3,7 @@ package ara.util;
 import ara.manet.communication.Emitter;
 import ara.manet.communication.EmitterImpl;
 import ara.manet.detection.NeighborProtocolImpl;
+import ara.manet.detection.ProbeMessage;
 import ara.manet.positioning.PositionProtocol;
 import ara.manet.positioning.PositionProtocolImpl;
 import peersim.config.Configuration;
@@ -31,12 +32,14 @@ public class Initialisator implements Control {
 			PositionProtocol position = (PositionProtocol)node.getProtocol(positionPid);
 			position.initialiseCurrentPosition(node);
 			PositionProtocolImpl pp = (PositionProtocolImpl)position;
+			NeighborProtocolImpl np = (NeighborProtocolImpl)node.getProtocol(neighborPid);
+			np.processEvent(node, neighborPid, new ProbeMessage(node.getID(), Emitter.ALL, neighborPid));
 			pp.processEvent(node, positionPid, LOOP_EVENT);
 			//Emitter emp = (EmitterImpl) node.getProtocol((emitterPid));
 			//emp.processEvent(node, emitterPid, emp);
-			NeighborProtocolImpl np = (NeighborProtocolImpl)node.getProtocol(neighborPid);
-			np.processEvent(node, neighborPid, new ProbeMessage(node.getID(), node.getID(), neighborPid));
+
 		}
 		return false;
 	}
 }
+

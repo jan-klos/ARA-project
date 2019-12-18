@@ -4,54 +4,79 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import ara.manet.communication.Emitter;
-import ara.util.ProbeMessage;
+import ara.util.Message;
 import peersim.config.Configuration;
+import peersim.core.CommonState;
 import peersim.core.Node;
+import peersim.edsim.EDProtocol;
 
-public class NeighborProtocolImpl implements NeighborProtocol {
+public class NeighborProtocolImpl implements NeighborProtocol, EDProtocol {
 	private final static String PAR_PROBE = "probe";
 	private final static String PAR_TIMER = "timer";
 	private final static String PAR_NEIGHBORHOOD_LISTENER = "neighborhood_listener";
 	private final static String PAR_EMITTER = "protocol.emitter";
 	
-	private final int myPid, probe, timer;
+	private final int myPid;
+	private int probeTime, timer;
 	private final Emitter emitter;
 	private final NeighborhoodListener neighborhoodListener;
-	private Map<Long, Integer> neighbors;
-	private final long ALL = (long) -2;
+	private Map<Long, Long> neighborsMap;
 	
 	public NeighborProtocolImpl(String prefix) {
 		String tmp[] = prefix.split("\\.");
 		myPid = Configuration.lookupPid(tmp[tmp.length - 1]);
-		probe = Configuration.getInt(prefix + "." + PAR_PROBE);
+		probeTime = Configuration.getInt(prefix + "." + PAR_PROBE);
 		timer = Configuration.getInt(prefix + "." + PAR_TIMER);
 		neighborhoodListener = (NeighborhoodListener) Configuration.getInstance(PAR_NEIGHBORHOOD_LISTENER, null);
 		emitter = (Emitter) Configuration.getInstance(PAR_EMITTER);
-		neighbors = new HashMap<Long, Integer>();
+		neighborsMap = new HashMap<Long, Long>();
 	}
 	
 	@Override
 	public List<Long> getNeighbors() {
-		List<Long> neighborsIdList = new ArrayList<Long>();
-		for (Long neighborId:neighbors.keySet()) {
-			neighborsIdList.add(neighborId);
-		}
-		return neighborsIdList;
+		return new ArrayList<Long>(neighborsMap.keySet());
 	}
 	
-	public void heartbeat(Node sender){
-		long senderId = sender.getID();
-		ProbeMessage msg = new ProbeMessage(senderId, ALL, myPid, timer, probe);
-		emitter.emit(sender, msg);
+	public void emit(Node host, Message event) {
+		emitter.emit(host, event);
+	}
+
+	@Override
+	public void processEvent(Node host, int pid, Object event) {
+		if (pid != myPid)
+			throw new RuntimeException("Receive Event for wrong protocol");
+		
+		if (event instanceof ProbeMessage) {
+			long senderId = ((ProbeMessage) event).getIdSrc();
+			if (senderId == host.getID()) {
+				emit(host, new ProbeMessage(host.getID(), Emitter.ALL, myPid));
+			}
+			else {
+				emit(host, new ProbeAckMessage(host.getID(), senderId, myPid));
+				addToNeighbors(senderId);
+			}
+		} 
+		else if (event instanceof ProbeAckMessage) {
+			long senderId = ((ProbeAckMessage) event).getIdSrc();
+			addToNeighbors(senderId);
+
+		} 
+		// remove time-outed neighbors
+		neighborsMap.entrySet().removeIf(e -> e.getValue() < CommonState.getTime());
+	}
+	
+	public void addToNeighbors(Long neighborId) {
+		neighborsMap.put(neighborId, CommonState.getTime() + timer);
 	}
 
 	public Object clone() {
-		NeighborProtocol obj = null;
-		
+		NeighborProtocolImpl obj = null;
 		try {
 			obj = (NeighborProtocolImpl) super.clone();
+			obj.neighborsMap = new HashMap<Long, Long>(neighborsMap);
+			obj.probeTime = probeTime;
+			obj.timer = timer;
 		} 
 		catch (CloneNotSupportedException e) {}
 		return obj;

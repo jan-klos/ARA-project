@@ -1,4 +1,4 @@
-network.size 5
+network.size 6
 simulation.endtime 5000000
 random.seed 5
 
@@ -20,8 +20,8 @@ protocol.emitter.variance_active FALSE
 protocol.emitter.scope 100
 
 protocol.neighbor NeighborProtocolImpl
-protocol.neighbor.probe 10
-protocol.neighbor.timer 10
+protocol.neighbor.probe 100
+protocol.neighbor.timer 100
 
 control.monitor GraphicalMonitor
 control.monitor.from 0
@@ -30,8 +30,9 @@ control.monitor.step 10
 control.monitor.time_slow 0.0002
 control.monitor.positionprotocol position_protocol
 control.monitor.emitter emitter
-control.monitor.neighbor neighbor
+control.monitor.neighborprotocol neighbor
 
 init.i Initialisator
 init.i.position_pid position_protocol
 init.i.emitter_pid emitter
+init.i.neighbor_pid neighbor
