@@ -1,4 +1,4 @@
-network.size 6
+network.size 10
 simulation.endtime 5000000
 random.seed 5
 
@@ -11,8 +11,11 @@ protocol.position_protocol.pause 1
 
 initial_position_strategy FullRandom
 initial_position_strategy.positionprotocol position_protocol
+initial_position_strategy.emitter emitter
+
 next_destination_strategy FullRandom
 next_destination_strategy.positionprotocol position_protocol
+next_destination_strategy.emitter emitter
 
 protocol.emitter EmitterImpl
 protocol.emitter.latency 1

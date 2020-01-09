@@ -60,9 +60,7 @@ public class NeighborProtocolImpl implements NeighborProtocol, EDProtocol {
 		else if (event instanceof ProbeAckMessage) {
 			long senderId = ((ProbeAckMessage) event).getIdSrc();
 			addToNeighbors(senderId);
-
 		} 
-		// remove time-outed neighbors
 		neighborsMap.entrySet().removeIf(e -> e.getValue() < CommonState.getTime());
 	}
 	
